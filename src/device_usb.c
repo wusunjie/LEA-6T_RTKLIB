@@ -59,11 +59,7 @@ static int open_serial_port(void)
             printf("kernel driver will auto detach...\n");
         }
         if (LIBUSB_SUCCESS == libusb_claim_interface(port.handle, LEA6T_USB_SERIAL_IF)) {
-            uint8_t eps[2] = {LEA6T_USB_EP_TXD, LEA6T_USB_EP_RXD};
             printf("claim interface successfully\n");
-            if (2 != libusb_alloc_streams(port.handle, 2, eps, 2)) {
-                goto failed;
-            }
             port.tx_transfer = libusb_alloc_transfer(0);
             port.rx_transfer = libusb_alloc_transfer(0);
             if (!port.tx_transfer || !port.rx_transfer) {
@@ -106,8 +102,8 @@ static void close_serial_port(void)
 
 static int read_serial_port(int len)
 {
-    libusb_fill_bulk_stream_transfer(port.rx_transfer, port.handle, LEA6T_USB_EP_RXD,
-        2, port.rxdata + 1024 - len, len, libusb_transfer_read_cb, NULL, 0);
+    libusb_fill_bulk_transfer(port.rx_transfer, port.handle, LEA6T_USB_EP_RXD,
+        port.rxdata + 1024 - len, len, libusb_transfer_read_cb, NULL, 0);
     return libusb_submit_transfer(port.rx_transfer);
 }
 
@@ -115,8 +111,8 @@ static int write_serial_port(uint8_t *buffer, int len)
 {
     uint8_t *data= (uint8_t *)malloc(len);
     if (data) {
-        libusb_fill_bulk_stream_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
-            1, data, len, libusb_transfer_write_cb, NULL, 0);
+        libusb_fill_bulk_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
+            data, len, libusb_transfer_write_cb, NULL, 0);
         return libusb_submit_transfer(port.tx_transfer);
     }
     else {
