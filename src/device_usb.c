@@ -21,6 +21,7 @@ struct serial_port {
     struct libusb_transfer *tx_transfer;
     struct libusb_transfer *rx_transfer;
     uint8_t rxdata[1024];
+    int len;
 };
 
 static int open_serial_port(void);
@@ -65,6 +66,7 @@ static int open_serial_port(void)
             if (!port.tx_transfer || !port.rx_transfer) {
                 goto failed;
             }
+            port.len = 0;
             return read_serial_port(1024);
         }
         else {
@@ -152,11 +154,19 @@ static void libusb_transfer_read_cb(struct libusb_transfer *transfer)
 {
     if ((LIBUSB_TRANSFER_COMPLETED == transfer->status)
         || (LIBUSB_TRANSFER_OVERFLOW == transfer->status)) {
-        int parsed_len = parse_ublox_message(port.rxdata, transfer->actual_length);
+        int parsed_len = parse_ublox_message(port.rxdata, port.len + transfer->actual_length);
         memmove(port.rxdata, port.rxdata + parsed_len, parsed_len);
-        read_serial_port(1024 - (transfer->actual_length - parsed_len));
+        port.len += transfer->actual_length - parsed_len;
+        if (1024 > port.len) {
+            read_serial_port(1024 - port.len);
+        }
+        else {
+            port.len = 0;
+            read_serial_port(1024);
+        }
     }
     else {
+        port.len = 0;
         read_serial_port(1024);
     }
 }
