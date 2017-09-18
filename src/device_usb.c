@@ -15,12 +15,14 @@
 #define LEA6T_USB_EP_TXD 0x01
 #define LEA6T_USB_EP_RXD 0x82
 
+#define LEA6T_USB_BUFFER_SIZE 1024
+
 struct serial_port {
     libusb_context *ctx;
     libusb_device_handle *handle;
     struct libusb_transfer *tx_transfer;
     struct libusb_transfer *rx_transfer;
-    uint8_t rxdata[1024];
+    uint8_t rxdata[LEA6T_USB_BUFFER_SIZE];
     int len;
 };
 
@@ -67,7 +69,7 @@ static int open_serial_port(void)
                 goto failed;
             }
             port.len = 0;
-            return read_serial_port(1024);
+            return read_serial_port(LEA6T_USB_BUFFER_SIZE);
         }
         else {
             printf("claim interface failed\n");
@@ -105,7 +107,7 @@ static void close_serial_port(void)
 static int read_serial_port(int len)
 {
     libusb_fill_bulk_transfer(port.rx_transfer, port.handle, LEA6T_USB_EP_RXD,
-        port.rxdata + 1024 - len, len, libusb_transfer_read_cb, NULL, 0);
+        port.rxdata + LEA6T_USB_BUFFER_SIZE - len, len, libusb_transfer_read_cb, NULL, 0);
     return libusb_submit_transfer(port.rx_transfer);
 }
 
@@ -157,17 +159,17 @@ static void libusb_transfer_read_cb(struct libusb_transfer *transfer)
         int parsed_len = parse_ublox_message(port.rxdata, port.len + transfer->actual_length);
         memmove(port.rxdata, port.rxdata + parsed_len, parsed_len);
         port.len += transfer->actual_length - parsed_len;
-        if (1024 > port.len) {
-            read_serial_port(1024 - port.len);
+        if (LEA6T_USB_BUFFER_SIZE > port.len) {
+            read_serial_port(LEA6T_USB_BUFFER_SIZE - port.len);
         }
         else {
             port.len = 0;
-            read_serial_port(1024);
+            read_serial_port(LEA6T_USB_BUFFER_SIZE);
         }
     }
     else {
         port.len = 0;
-        read_serial_port(1024);
+        read_serial_port(LEA6T_USB_BUFFER_SIZE);
     }
 }
 
