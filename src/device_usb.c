@@ -62,26 +62,29 @@ static int open_serial_port(void)
             uint8_t eps[2] = {LEA6T_USB_EP_TXD, LEA6T_USB_EP_RXD};
             printf("claim interface successfully\n");
             if (2 != libusb_alloc_streams(port.handle, 2, eps, 2)) {
-                return -1;
+                goto failed;
             }
             port.tx_transfer = libusb_alloc_transfer(0);
             port.rx_transfer = libusb_alloc_transfer(0);
             if (!port.tx_transfer || !port.rx_transfer) {
-                return -1;
+                goto failed;
             }
             return read_serial_port(1024);
         }
         else {
             printf("claim interface failed\n");
-            return -1;
+            goto failed;
         }
     }
     else {
         printf("LEA-6T Module not found\n");
-        return -1;
+        goto failed;
     }
 
     return 0;
+failed:
+    close_serial_port();
+    return -1;
 }
 
 static void close_serial_port(void)
