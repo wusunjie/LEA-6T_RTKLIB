@@ -20,10 +20,14 @@ static struct event_source usb_source;
 
 int navi_start(void)
 {
-    usb_source.list = NULL;
-    usb_source.len = dev->get_pollfd(&(usb_source.list));
-    status = 0;
-    return dev->open();
+    if (!dev->open()) {
+        usb_source.list = NULL;
+        usb_source.len = dev->get_pollfd(&(usb_source.list));
+        status = 0;
+        return 0;
+    }
+
+    return -1;
 }
 
 void navi_stop(void)
