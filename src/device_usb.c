@@ -9,11 +9,11 @@
 
 #include <poll.h>
 
-#define LEA6T_USB_VENDOR_ID 0x1546
+#define LEA6T_USB_VENDOR_ID  0x1546
 #define LEA6T_USB_PRODUCT_ID 0x01A6
-#define LEA6T_USB_SERIAL_IF 1
-#define LEA6T_USB_EP_TXD 0x01
-#define LEA6T_USB_EP_RXD 0x82
+#define LEA6T_USB_SERIAL_IF       1
+#define LEA6T_USB_EP_TXD       0x01
+#define LEA6T_USB_EP_RXD       0x82
 
 #define LEA6T_USB_BUFFER_SIZE 1024
 
@@ -148,6 +148,7 @@ static int poll_serial_port(void)
             }
             free(polls);
         }
+        libusb_free_pollfds(list);
     }
 
     return ret;
@@ -177,7 +178,8 @@ static void libusb_transfer_read_cb(struct libusb_transfer *transfer)
 static void libusb_transfer_write_cb(struct libusb_transfer *transfer)
 {
     if (LIBUSB_TRANSFER_COMPLETED == transfer->status) {
-        printf("bulk send successfully %s\n", transfer->buffer);
+        printf("bulk send successfully %d\n", transfer->actual_length);
     }
+
     free(transfer->buffer);
 }
