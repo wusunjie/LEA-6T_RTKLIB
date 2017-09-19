@@ -9,6 +9,7 @@ struct event_source {
     int len;
 };
 
+
 extern struct device device_usb;
 
 static int status = 0;

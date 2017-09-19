@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <queue>
+#include <utility>
+
 #define LEA6T_USB_VENDOR_ID  0x1546
 #define LEA6T_USB_PRODUCT_ID 0x01A6
 #define LEA6T_USB_SERIAL_IF       1
@@ -22,6 +25,8 @@ struct serial_port {
     struct libusb_transfer *rx_transfer;
     uint8_t rxdata[LEA6T_USB_BUFFER_SIZE];
     int len;
+    std::queue< std::pair<uint8_t *, int> > tx_buffer;
+    int tx_idle;
 };
 
 static int open_serial_port(void);
@@ -69,6 +74,7 @@ static int open_serial_port(void)
                 goto failed;
             }
             port.len = 0;
+            port.tx_idle = 1;
             return read_serial_port(LEA6T_USB_BUFFER_SIZE);
         }
         else {
@@ -116,9 +122,16 @@ static int write_serial_port(uint8_t *buffer, int len)
     uint8_t *data= (uint8_t *)malloc(len);
     if (data) {
         memcpy(data, buffer, len);
-        libusb_fill_bulk_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
-            data, len, libusb_transfer_write_cb, NULL, 0);
-        return libusb_submit_transfer(port.tx_transfer);
+        if (port.tx_idle) {
+            libusb_fill_bulk_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
+                data, len, libusb_transfer_write_cb, NULL, 0);
+            libusb_submit_transfer(port.tx_transfer);
+            port.tx_idle = 0;
+        }
+        else {
+            port.tx_buffer.push(std::make_pair(data, len));
+        }
+        return 0;
     }
     else {
         return -1;
@@ -178,9 +191,19 @@ static void libusb_transfer_read_cb(struct libusb_transfer *transfer)
 
 static void libusb_transfer_write_cb(struct libusb_transfer *transfer)
 {
+    free(transfer->buffer);
+    if (!port.tx_buffer.empty()) {
+        std::pair<uint8_t *, int> t = port.tx_buffer.front();
+        libusb_fill_bulk_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
+        t.first, t.second, libusb_transfer_write_cb, NULL, 0);
+        libusb_submit_transfer(port.tx_transfer);
+        port.tx_buffer.pop();
+    }
+    else {
+        port.tx_idle = 1;
+    }
+
     if (LIBUSB_TRANSFER_COMPLETED == transfer->status) {
         printf("bulk send successfully %d\n", transfer->actual_length);
     }
-
-    free(transfer->buffer);
 }
