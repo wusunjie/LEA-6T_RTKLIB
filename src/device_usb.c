@@ -136,7 +136,7 @@ static int get_pollfd_serial_port(struct pollfd **polls)
             count++;
         }
         if (count) {
-            *polls = (struct pollfd *)calloc(count, sizeof(*polls));
+            *polls = (struct pollfd *)calloc(count, sizeof(**polls));
             for (i = 0; i < count; i++) {
                 (*polls)->fd = list[i]->fd;
                 (*polls)->events = list[i]->events;
