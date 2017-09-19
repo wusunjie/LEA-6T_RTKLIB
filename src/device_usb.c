@@ -115,6 +115,7 @@ static int write_serial_port(uint8_t *buffer, int len)
 {
     uint8_t *data= (uint8_t *)malloc(len);
     if (data) {
+        memcpy(data, buffer, len);
         libusb_fill_bulk_transfer(port.tx_transfer, port.handle, LEA6T_USB_EP_TXD,
             data, len, libusb_transfer_write_cb, NULL, 0);
         return libusb_submit_transfer(port.tx_transfer);
@@ -140,7 +141,7 @@ static int poll_serial_port(void)
                 polls->fd = list[i]->fd;
                 polls->events = list[i]->events;
             }
-            ret = poll(polls, count, 0);
+            ret = poll(polls, count, -1);
             if (ret > 0) {
                 struct timeval zero = {0, 0};
                 ret = libusb_handle_events_timeout(port.ctx, &zero);
@@ -175,5 +176,8 @@ static void libusb_transfer_read_cb(struct libusb_transfer *transfer)
 
 static void libusb_transfer_write_cb(struct libusb_transfer *transfer)
 {
+    if (LIBUSB_TRANSFER_COMPLETED == transfer->status) {
+        printf("bulk send successfully %s\n", transfer->buffer);
+    }
     free(transfer->buffer);
 }
