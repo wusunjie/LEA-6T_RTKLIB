@@ -21,7 +21,14 @@ int navi_start(void)
 {
     usb_source.list = NULL;
     usb_source.len = dev->get_pollfd(&(usb_source.list));
+    status = 0;
     return dev->open();
+}
+
+int navi_stop(void)
+{
+    dev->close();
+    free(usb_source.list);
 }
 
 int navi_event_handle(void)
