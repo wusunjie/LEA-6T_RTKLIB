@@ -29,6 +29,8 @@ struct serial_port {
     int tx_idle;
 };
 
+static struct serial_port port;
+
 static int open_serial_port(void);
 static void close_serial_port(void);
 static int get_pollfd_serial_port(struct pollfd **polls);
@@ -38,8 +40,6 @@ static int write_serial_port(uint8_t *buffer, int len);
 static int read_serial_port(int len);
 static void libusb_transfer_read_cb(struct libusb_transfer *transfer);
 static void libusb_transfer_write_cb(struct libusb_transfer *transfer);
-
-static struct serial_port port;
 
 extern int parse_ublox_message(uint8_t *data, int len);
 
