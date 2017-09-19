@@ -25,7 +25,7 @@ int navi_start(void)
     return dev->open();
 }
 
-int navi_stop(void)
+void navi_stop(void)
 {
     dev->close();
     free(usb_source.list);
@@ -61,6 +61,8 @@ int navi_event_handle(void)
     }
 
     free(fds);
+
+    return 0;
 }
 
 int parse_ublox_message(uint8_t *data, int len)

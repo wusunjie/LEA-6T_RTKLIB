@@ -1,5 +1,5 @@
 extern int navi_start(void);
-extern int navi_stop(void);
+extern void navi_stop(void);
 extern int navi_event_handle(void);
 
 int main(void)
