@@ -3,10 +3,13 @@
 
 #include <stdint.h>
 
+#include <poll.h>
+
 struct device {
     int (*open)(void);
     void (*close)(void);
-    int (*poll)(void);
+    int (*get_pollfd)(struct pollfd **polls);
+    int (*handle_event)(void);
     int (*write)(uint8_t *buffer, int len);
 };
 

@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <poll.h>
-
 #define LEA6T_USB_VENDOR_ID  0x1546
 #define LEA6T_USB_PRODUCT_ID 0x01A6
 #define LEA6T_USB_SERIAL_IF       1
@@ -28,7 +26,8 @@ struct serial_port {
 
 static int open_serial_port(void);
 static void close_serial_port(void);
-static int poll_serial_port(void);
+static int get_pollfd_serial_port(struct pollfd **polls);
+static int handle_event_serial_port(void);
 static int write_serial_port(uint8_t *buffer, int len);
 
 static int read_serial_port(int len);
@@ -42,7 +41,8 @@ extern int parse_ublox_message(uint8_t *data, int len);
 struct device device_usb = {
     .open = open_serial_port,
     .close = close_serial_port,
-    .poll = poll_serial_port,
+    .get_pollfd = get_pollfd_serial_port,
+    .handle_event = handle_event_serial_port,
     .write = write_serial_port
 };
 
@@ -125,7 +125,7 @@ static int write_serial_port(uint8_t *buffer, int len)
     }
 }
 
-static int poll_serial_port(void)
+static int get_pollfd_serial_port(struct pollfd **polls)
 {
     int ret = -1;
     const struct libusb_pollfd **list = libusb_get_pollfds(port.ctx);
@@ -136,22 +136,23 @@ static int poll_serial_port(void)
             count++;
         }
         if (count) {
-            struct pollfd *polls = (struct pollfd *)calloc(count, sizeof(*polls));
+            *polls = (struct pollfd *)calloc(count, sizeof(*polls));
             for (i = 0; i < count; i++) {
-                polls->fd = list[i]->fd;
-                polls->events = list[i]->events;
+                (*polls)->fd = list[i]->fd;
+                (*polls)->events = list[i]->events;
             }
-            ret = poll(polls, count, -1);
-            if (ret > 0) {
-                struct timeval zero = {0, 0};
-                ret = libusb_handle_events_timeout(port.ctx, &zero);
-            }
-            free(polls);
+            ret = count;
         }
         libusb_free_pollfds(list);
     }
 
     return ret;
+}
+
+static int handle_event_serial_port(void)
+{
+    struct timeval zero = {0, 0};
+    return libusb_handle_events_timeout(port.ctx, &zero);
 }
 
 static void libusb_transfer_read_cb(struct libusb_transfer *transfer)

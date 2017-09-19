@@ -2,21 +2,58 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+struct event_source {
+    struct pollfd *list;
+    int len;
+};
 
 extern struct device device_usb;
 
 static int status = 0;
 
-struct device *dev = &device_usb;
+static struct device *dev = &device_usb;
+
+static struct event_source usb_source;
 
 int navi_start(void)
 {
+    usb_source.list = NULL;
+    usb_source.len = dev->get_pollfd(&(usb_source.list));
     return dev->open();
 }
 
 int navi_event_handle(void)
 {
-    return dev->poll();
+    struct pollfd *fds = (struct pollfd *)malloc(usb_source.len * sizeof(*fds));
+    memcpy(fds, usb_source.list, usb_source.len);
+
+    int len = usb_source.len;
+
+    if (len > 0) {
+        int ret = poll(fds, len, -1);
+        if (ret > 0) {
+            int i, j, usb_source_flag = 0;
+            for (i = 0; i < len; i++) {
+                if (!fds[i].revents) {
+                    continue;
+                }
+                for (j = 0; j < len; j++) {
+                    if (usb_source.list[j].fd == fds[i].fd) {
+                        usb_source_flag = 1;
+                        break;
+                    }
+                }
+            }
+
+            if (usb_source_flag) {
+                dev->handle_event();
+            }
+        }
+    }
+
+    free(fds);
 }
 
 int parse_ublox_message(uint8_t *data, int len)
