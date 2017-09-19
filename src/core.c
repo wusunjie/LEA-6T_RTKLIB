@@ -39,7 +39,8 @@ void navi_stop(void)
 int navi_event_handle(void)
 {
     struct pollfd *fds = (struct pollfd *)malloc(usb_source.len * sizeof(*fds));
-    memcpy(fds, usb_source.list, usb_source.len);
+
+    memcpy(fds, usb_source.list, usb_source.len * sizeof(*fds));
 
     int len = usb_source.len;
 

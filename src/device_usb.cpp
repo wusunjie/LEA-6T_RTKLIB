@@ -41,7 +41,7 @@ static int read_serial_port(int len);
 static void libusb_transfer_read_cb(struct libusb_transfer *transfer);
 static void libusb_transfer_write_cb(struct libusb_transfer *transfer);
 
-extern int parse_ublox_message(uint8_t *data, int len);
+extern "C" int parse_ublox_message(uint8_t *data, int len);
 
 struct device device_usb = {
     .open = open_serial_port,
